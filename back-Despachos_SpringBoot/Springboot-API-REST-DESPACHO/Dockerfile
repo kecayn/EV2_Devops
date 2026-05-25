@@ -9,6 +9,8 @@ RUN mvn clean package -DskipTests
 # Etapa 2: Ejecución de la aplicación (Crea la imagen final liviana)
 FROM eclipse-temurin:17-jre
 WORKDIR /app
+RUN addgroup --system spring && adduser --system --ingroup spring spring
+USER spring:spring
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080 
 
