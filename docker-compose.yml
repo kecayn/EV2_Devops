@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  # Servicio 1: API de Ventas
+  api_ventas:
+    container_name: api_ventas
+    build:
+      context: ./back-Ventas_SpringBoot/Springboot-API-REST
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_ENDPOINT=tu-endpoint-rds-de-aws.amazonaws.com
+      - DB_PORT=3306
+      - DB_NAME=tu_base_datos_ventas
+      - DB_USERNAME=tu_usuario
+      - DB_PASSWORD=tu_password
+
+  # Servicio 2: API de Despachos
+  api_despachos:
+    container_name: api_despachos
+    build:
+      context: ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8081"
+    environment:
+      - DB_ENDPOINT=tu-endpoint-rds-de-aws.amazonaws.com
+      - DB_PORT=3306
+      - DB_NAME=tu_base_datos_despachos
+      - DB_USERNAME=tu_usuario
+      - DB_PASSWORD=tu_password
+
+  # Servicio 3: Frontend Web
+  frontend_app:
+    container_name: frontend_despacho
+    build:
+      context: ./front_despacho
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api_ventas
+      - api_despachos
