@@ -8,7 +8,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar Código del Repositorio
+      - name: Descargar Codigo del Repositorio
         uses: actions/checkout@v4
 
       - name: Autenticarse en Docker Hub
@@ -17,29 +17,70 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 1. Construir y subir API Ventas
+      # 1. API Ventas
       - name: Build & Push API Ventas
         uses: docker/build-push-action@v5
         with:
           context: ./back-Ventas_SpringBoot/Springboot-API-REST
           file: ./back-Ventas_SpringBoot/Springboot-API-REST/Dockerfile
           push: true
-          tags: caype/api_ventas:latest
+          tags: caypereira/api_ventas:latest
 
-      # 2. Construir y subir API Despachos
+      # 2. API Despachos
       - name: Build & Push API Despachos
         uses: docker/build-push-action@v5
         with:
           context: ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
           file: ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO/Dockerfile
           push: true
-          tags: caype/api_despachos:latest
+          tags: caypereira/api_despachos:latest
 
-      # 3. Construir y subir Frontend
+      # 3. Frontend Web
       - name: Build & Push Frontend
         uses: docker/build-push-action@v5
         with:
           context: ./front_despacho
           file: ./front_despacho/Dockerfile
           push: true
-          tags: caype/frontend_despacho:latest
+          tags: caypereira/frontend_despacho:latest
+
+  deploy-to-ec2:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    env:
+      AWS_REGION: us-east-1
+      EC2_INSTANCE_ID: i-07e8bb58999dabf38
+      APP_DIR: /home/ec2-user/evaluacion2_devops                    
+    steps:
+      - name: Descargar Repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Credenciales AWS
+        run: |
+          mkdir -p ~/.aws
+          cat > ~/.aws/credentials << EOF
+          [default]
+          aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_session_token=${{ secrets.AWS_SESSION_TOKEN }}
+          EOF
+          cat > ~/.aws/config << EOF
+          [default]
+          region=${{ env.AWS_REGION }}
+          output=json
+          EOF
+
+      - name: Actualizar contenedores en EC2 mediante AWS SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ env.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Actualizando contenedores desde Docker Hub" \
+            --parameters commands="[
+              'cd ${{ env.APP_DIR }}',
+              'git pull origin main',
+              'docker compose down',
+              'docker compose pull',
+              'docker compose up -d'
+            ]" \
+            --output text
