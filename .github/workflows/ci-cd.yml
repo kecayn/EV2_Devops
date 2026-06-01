@@ -24,7 +24,7 @@ jobs:
           context: ./front_despacho
           file: ./front_despacho/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nombre-de-tu-imagen:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/front-despacho:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -37,11 +37,9 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Detener y borrar contenedor anterior
-            sudo docker stop mi-app || true
-            sudo docker rm mi-app || true
-            # Iniciar sesión en Docker Hub desde el servidor
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            # Descargar y correr la nueva imagen
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/nombre-de-tu-imagen:latest
-            sudo docker run -d --name mi-app -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/nombre-de-tu-imagen:latest
+            # Detener y borrar contenedor anterior de manera forzada
+            sudo docker rm -f mi-app || true
+            
+            # Descargar la nueva imagen desde Docker Hub e iniciarla en el puerto 80
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/front-despacho:latest
+            sudo docker run -d --name mi-app -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/front-despacho:latest
